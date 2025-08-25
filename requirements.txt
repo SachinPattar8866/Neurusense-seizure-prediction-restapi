@@ -1,0 +1,8 @@
+flask
+flask-cors
+tensorflow
+numpy
+scipy
+mne
+pillow
+python-dotenv
