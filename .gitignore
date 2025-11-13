@@ -1,0 +1,45 @@
+# Python caches and virtual envs
+__pycache__/
+*.py[cod]
+*.egg-info/
+env/
+venv/
+.venv/
+*.pyo
+*.pyc
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Logs and runtime files
+logs/
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# VSCode
+.vscode/
+
+# Data and uploads
+uploads/
+tmp/
+*.sqlite3
+
+# Model files tracked via Git LFS (large binary files)
+models/*.h5
+models/histories/
+
+# Tests artifacts
+.pytest_cache/
+.coverage
+htmlcov/
+
+# IDE
+*.swp
+*.swo
+*~
+.idea/

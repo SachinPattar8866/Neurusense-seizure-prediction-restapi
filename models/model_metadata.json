@@ -1,0 +1,57 @@
+{
+  "export_timestamp_utc": "2025-10-16T12:05:54.919267Z",
+  "models": {
+    "hybrid_best.h5": {
+      "model_filename": "hybrid_best.h5",
+      "source_training_path": "F:\\Neurosense-final-year-project\\training\\models\\hybrid_best.h5",
+      "exported_path": "F:\\Neurosense-final-year-project\\Neurosense-seizure-prediction-restapi\\models\\hybrid_best.h5",
+      "export_timestamp_utc": "2025-10-16T12:05:54.986186Z",
+      "sha256": "ccdf1eedcfdd8a632b47b050ec4124d4f9f6e84822bf3e9270024d31bdcd9228",
+      "file_size_bytes": 14198296,
+      "preprocessing": {
+        "img_size": 128,
+        "color_mode": "rgb",
+        "rescale_factor": 0.003921568627451,
+        "spectrogram_params": {
+          "nperseg": 128,
+          "noverlap": 64,
+          "log_scale": false
+        },
+        "sampling_rate": 256.0
+      },
+      "class_indices": {
+        "non_seizure": 0,
+        "preictal": 1,
+        "seizure": 2
+      },
+      "training_history": "cnn_history.json",
+      "metadata_notes": ""
+    },
+    "cnn_best.h5": {
+      "model_filename": "cnn_best.h5",
+      "source_training_path": "F:\\Neurosense-final-year-project\\training\\models\\cnn_best.h5",
+      "exported_path": "F:\\Neurosense-final-year-project\\Neurosense-seizure-prediction-restapi\\models\\cnn_best.h5",
+      "export_timestamp_utc": "2025-10-16T12:05:55.121048Z",
+      "sha256": "ec6adfb90811e68c0f679fbef0178730f9fcb764c8a8284eaf7a1736199c7e04",
+      "file_size_bytes": 51537448,
+      "preprocessing": {
+        "img_size": 128,
+        "color_mode": "rgb",
+        "rescale_factor": 0.003921568627451,
+        "spectrogram_params": {
+          "nperseg": 128,
+          "noverlap": 64,
+          "log_scale": false
+        },
+        "sampling_rate": 256.0
+      },
+      "class_indices": {
+        "non_seizure": 0,
+        "preictal": 1,
+        "seizure": 2
+      },
+      "training_history": "cnn_history.json",
+      "metadata_notes": ""
+    }
+  }
+}
