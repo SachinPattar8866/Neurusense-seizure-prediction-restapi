@@ -6,3 +6,11 @@ scipy
 mne
 pillow
 python-dotenv
+opencv-python
+matplotlib
+scikit-learn
+pymongo
+flask-jwt-extended
+bcrypt
+weasyprint
+pdfkit

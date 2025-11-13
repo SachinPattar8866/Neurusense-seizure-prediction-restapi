@@ -1,0 +1,17 @@
+{
+  "hybrid_best.h5": {
+    "best_f1_threshold": 0.2250726968050003,
+    "best_f1": 0.8638497652582159,
+    "recall_0.9_threshold": 0.14532193541526794
+  },
+  "cnn_best.h5": {
+    "best_f1_threshold": 0.04658019170165062,
+    "best_f1": 0.894736842105263,
+    "recall_0.9_threshold": 0.06566505134105682
+  },
+  "ensemble": {
+    "best_f1_threshold": 0.2069781795144081,
+    "best_f1": 0.8788598574821852,
+    "recall_0.9_threshold": 0.14320243895053864
+  }
+}
