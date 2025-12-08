@@ -187,8 +187,17 @@ def predict():
         cnn_labeled = {labels[i]: round(float(cnn_probs[i]) if i < len(cnn_probs) else 0.0, 4)
                        for i in range(len(labels))}
 
+        # Extract class probabilities for all three labels
         hybrid_seizure = float(hybrid_labeled.get("seizure", 0.0))
+        hybrid_preictal = float(hybrid_labeled.get("preictal", 0.0))
+        hybrid_non_seizure = float(hybrid_labeled.get("non_seizure", 0.0))
+        
         cnn_seizure = float(cnn_labeled.get("seizure", 0.0))
+        cnn_preictal = float(cnn_labeled.get("preictal", 0.0))
+        cnn_non_seizure = float(cnn_labeled.get("non_seizure", 0.0))
+
+        print(f"[MODEL OUTPUT] Hybrid: seizure={hybrid_seizure:.4f}, preictal={hybrid_preictal:.4f}, non_seizure={hybrid_non_seizure:.4f}")
+        print(f"[MODEL OUTPUT] CNN: seizure={cnn_seizure:.4f}, preictal={cnn_preictal:.4f}, non_seizure={cnn_non_seizure:.4f}")
 
         # Thresholds and weights
         thresholds_path = os.path.join(os.path.dirname(MODEL_METADATA_PATH), 'thresholds.json')
@@ -214,16 +223,61 @@ def predict():
         except Exception:
             weights = {'hybrid_best.h5': 0.5, 'cnn_best.h5': 0.5}
 
-        ensemble_prob = weights.get('hybrid_best.h5', 0.5) * hybrid_seizure + weights.get('cnn_best.h5', 0.5) * cnn_seizure
+        # Compute ensemble probabilities for each class
+        ensemble_seizure = weights.get('hybrid_best.h5', 0.5) * hybrid_seizure + weights.get('cnn_best.h5', 0.5) * cnn_seizure
+        ensemble_preictal = weights.get('hybrid_best.h5', 0.5) * hybrid_preictal + weights.get('cnn_best.h5', 0.5) * cnn_preictal
+        ensemble_non_seizure = weights.get('hybrid_best.h5', 0.5) * hybrid_non_seizure + weights.get('cnn_best.h5', 0.5) * cnn_non_seizure
 
-        ensemble_thresh = ALERT_THRESHOLD
-        if 'ensemble' in thresholds and 'recall_0.9_threshold' in thresholds['ensemble']:
-            try:
-                ensemble_thresh = float(thresholds['ensemble']['recall_0.9_threshold'])
-            except Exception:
-                ensemble_thresh = ALERT_THRESHOLD
+        print(f"[ENSEMBLE CALC] weights: hybrid={weights.get('hybrid_best.h5', 0.5):.4f}, cnn={weights.get('cnn_best.h5', 0.5):.4f}")
+        print(f"[ENSEMBLE CALC] ensemble_seizure={ensemble_seizure:.4f}, ensemble_preictal={ensemble_preictal:.4f}, ensemble_non_seizure={ensemble_non_seizure:.4f}")
 
-        decision_status = 'seizure' if ensemble_prob >= ensemble_thresh else 'no_seizure'
+        # Define thresholds for 3-class classification (configurable)
+        # Decision logic:
+        # 1. Find the class with highest probability
+        # 2. If that class meets its minimum threshold, classify as that class
+        # 3. Otherwise classify as the class with highest probability
+        seizure_threshold = 0.50      # Seizure must be >= 50% to be classified as seizure
+        preictal_threshold = 0.35     # Preictal must be >= 35% to be classified as preictal
+        non_seizure_threshold = 0.20  # Non-seizure must be >= 20% to be classified as non-seizure
+
+        # Find the class with maximum probability
+        class_probs = {
+            'seizure': ensemble_seizure,
+            'preictal': ensemble_preictal,
+            'non-seizure': ensemble_non_seizure
+        }
+        max_class = max(class_probs, key=class_probs.get)
+        max_prob = class_probs[max_class]
+
+        # Apply thresholds and determine classification
+        if max_class == 'seizure' and ensemble_seizure >= seizure_threshold:
+            decision_status = 'seizure'
+            ensemble_confidence = ensemble_seizure
+        elif max_class == 'preictal' and ensemble_preictal >= preictal_threshold:
+            decision_status = 'preictal'
+            ensemble_confidence = ensemble_preictal
+        elif max_class == 'non-seizure' and ensemble_non_seizure >= non_seizure_threshold:
+            decision_status = 'non-seizure'
+            ensemble_confidence = ensemble_non_seizure
+        else:
+            # If highest class doesn't meet threshold, use class with second highest prob
+            remaining = {k: v for k, v in class_probs.items() if k != max_class}
+            fallback_class = max(remaining, key=remaining.get)
+            fallback_prob = remaining[fallback_class]
+            
+            if fallback_class == 'seizure' and fallback_prob >= seizure_threshold:
+                decision_status = 'seizure'
+                ensemble_confidence = fallback_prob
+            elif fallback_class == 'preictal' and fallback_prob >= preictal_threshold:
+                decision_status = 'preictal'
+                ensemble_confidence = fallback_prob
+            else:
+                # Default to class with highest probability
+                decision_status = max_class
+                ensemble_confidence = max_prob
+
+        print(f"[CONFIDENCE DEBUG] ensemble_seizure={ensemble_seizure:.4f}, ensemble_preictal={ensemble_preictal:.4f}, ensemble_non_seizure={ensemble_non_seizure:.4f}")
+        print(f"[CONFIDENCE DEBUG] decision_status={decision_status}, ensemble_confidence={ensemble_confidence:.4f}")
 
         # Log to CSV
         try:
@@ -233,10 +287,10 @@ def predict():
             if not os.path.exists(log_file):
                 with open(log_file, 'w', newline='') as f:
                     writer = csv.writer(f)
-                    writer.writerow(['timestamp', 'filename', 'hybrid_seizure', 'cnn_seizure', 'ensemble_prob', 'threshold', 'decision'])
+                    writer.writerow(['timestamp', 'filename', 'hybrid_seizure', 'hybrid_preictal', 'hybrid_non_seizure', 'cnn_seizure', 'cnn_preictal', 'cnn_non_seizure', 'ensemble_seizure', 'ensemble_preictal', 'ensemble_non_seizure', 'ensemble_confidence', 'decision'])
             with open(log_file, 'a', newline='') as f:
                 writer = csv.writer(f)
-                writer.writerow([datetime.datetime.now(datetime.timezone.utc).isoformat(), file.filename if file else 'uploaded', hybrid_seizure, cnn_seizure, ensemble_prob, ensemble_thresh, decision_status])
+                writer.writerow([datetime.datetime.now(datetime.timezone.utc).isoformat(), file.filename if file else 'uploaded', hybrid_seizure, hybrid_preictal, hybrid_non_seizure, cnn_seizure, cnn_preictal, cnn_non_seizure, ensemble_seizure, ensemble_preictal, ensemble_non_seizure, ensemble_confidence, decision_status])
         except Exception:
             pass
 
@@ -284,9 +338,11 @@ def predict():
                     'uploaded_image_preview': uploaded_data_uri,
                     'spectrogram_image_preview': spectrogram_data_uri,
                     'ensemble': {
-                        'probability': ensemble_prob,
-                        'threshold': ensemble_thresh,
+                        'probability': ensemble_confidence,
                         'decision': decision_status,
+                        'seizure_probability': ensemble_seizure,
+                        'preictal_probability': ensemble_preictal,
+                        'non_seizure_probability': ensemble_non_seizure,
                     }
                 }
                 try:
@@ -339,15 +395,21 @@ def predict():
                 "hybrid_cnn_bilstm": {
                     "probabilities": hybrid_labeled,
                     "seizure_probability": round(hybrid_seizure, 4),
+                    "preictal_probability": round(hybrid_preictal, 4),
+                    "non_seizure_probability": round(hybrid_non_seizure, 4),
                 },
                 "cnn_baseline": {
                     "probabilities": cnn_labeled,
                     "seizure_probability": round(cnn_seizure, 4),
+                    "preictal_probability": round(cnn_preictal, 4),
+                    "non_seizure_probability": round(cnn_non_seizure, 4),
                 },
             },
             "ensemble": {
-                "probability": round(ensemble_prob, 4),
-                "threshold": round(ensemble_thresh, 4),
+                "seizure_probability": round(ensemble_seizure, 4),
+                "preictal_probability": round(ensemble_preictal, 4),
+                "non_seizure_probability": round(ensemble_non_seizure, 4),
+                "confidence": round(ensemble_confidence, 4),
                 "decision": decision_status,
                 "weights": weights,
             },
